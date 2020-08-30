@@ -139,3 +139,7 @@ Type: `boolean`
 ## Example
 
 Check out our [simple example](https://codesandbox.io/s/use-moxie-demo-u3erf?file=/src/App.js).
+
+## Offline Support
+
+`useMoxie` has some basic offline support.

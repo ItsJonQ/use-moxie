@@ -7,9 +7,7 @@ export default {
 };
 
 const Example = () => {
-	const { actions, data, didInitialFetch, loading } = useMoxie({
-		actionReducer: (data, other) => console.log(data, other),
-	});
+	const { actions, data, didInitialFetch, loading } = useMoxie({});
 
 	if (!didInitialFetch && loading) {
 		return <div>...</div>;

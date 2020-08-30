@@ -27,10 +27,18 @@ export function useMoxie(props = defaultProps) {
 	const { actionReducer, collection, username } = mergedProps;
 
 	const localStorageKey = `useMoxie/${username}/${collection}`;
+	const localStorageDeleteKey = `useMoxie/${username}/${collection}/DELETE`;
 
 	const isOnline = useOnline();
+	const isOnlineRef = useRef(isOnline);
+	const didSaveLocalState = useRef(false);
+
 	const [loading, setLoading] = useState(true);
 	const [localState, setLocalState] = useLocalState(localStorageKey, []);
+	const [localDeleteState, setLocalDeleteState] = useLocalState(
+		localStorageDeleteKey,
+		[],
+	);
 	const [data, setData] = useState(localState || []);
 
 	const baseURL = useRef(`https://usemoxie.xyz/api/${username}`).current;
@@ -100,43 +108,23 @@ export function useMoxie(props = defaultProps) {
 		[api, collection, isOnline, report],
 	);
 
-	const post = useCallback(
-		async (entry) => {
-			if (!is.plainObject(entry)) {
-				warning(true, 'Entry must be a plain object');
-				return;
-			}
-
-			setLoading(true);
-
-			if (!isOnline) {
-				report(TYPES.POST_FAILED, { message: 'Currently offline' });
-
-				const postId = entry?.id || uuid();
-				const nextEntry = {
-					createdAt: Date.now(),
-					id: postId,
-					...entry,
-				};
-
-				setData((prev) => [...prev, nextEntry]);
-				setLocalState((prev) => [...prev, nextEntry]);
-
-				setLoading(false);
-				return;
-			}
-
+	const postOperation = useCallback(
+		async (data) => {
 			try {
 				report(TYPES.POST_STARTED);
 
-				const response = await api.post(`/${collection}`, entry);
+				const response = await api.post(`/${collection}`, data);
+
 				report(TYPES.POST_SUCCESS, response);
-
-				setData((prev) => [...prev, response.data.data]);
-
-				didInitialFetchRef.current = true;
 			} catch (err) {
 				report(TYPES.POST_FAILED, err);
+
+				setData((prev) =>
+					prev.filter((item) => {
+						const match = data.find((i) => i.id === item.id);
+						return !match;
+					}),
+				);
 
 				warning(
 					true,
@@ -144,38 +132,118 @@ export function useMoxie(props = defaultProps) {
 					'Ensure entry values are correct.',
 				);
 			}
-
-			setLoading(false);
 		},
-		[api, collection, isOnline, report, setLocalState],
+		[api, collection, report],
 	);
 
-	const put = useCallback(
+	const post = useCallback(
 		async (entry) => {
-			if (!is.plainObject(entry)) {
-				warning(true, 'Entry must be a plain object.');
+			const isMultipleEntries = is.array(entry);
+
+			if (!is.plainObject(entry) && !isMultipleEntries) {
+				warning(true, 'Entry must be a plain object or array');
 				return;
 			}
 
 			setLoading(true);
-			const { id } = entry;
+
+			let data = isMultipleEntries ? entry : [entry];
+
+			data = data.map((item) => {
+				const postId = item?.id || uuid();
+
+				return {
+					createdAt: Date.now(),
+					id: postId,
+					...item,
+				};
+			});
+
+			setData((prev) => [...prev, ...data]);
+
+			if (!isOnline) {
+				report(TYPES.POST_FAILED, { message: 'Currently offline' });
+
+				setLocalState((prev) => [...prev, ...data]);
+
+				setLoading(false);
+				return;
+			}
+
+			await postOperation(data);
+
+			setLoading(false);
+		},
+		[isOnline, postOperation, report, setLocalState],
+	);
+
+	const putOperation = useCallback(
+		async (data, previousData) => {
+			try {
+				report(TYPES.PUT_STARTED);
+
+				const response = await api.put(`/${collection}`, data);
+
+				report(TYPES.PUT_SUCCESS, response);
+			} catch (err) {
+				report(TYPES.PUT_FAILED, err);
+
+				if (previousData) {
+					setData((prev) =>
+						prev.map((item) => {
+							const match = previousData.find(
+								(i) => i.id === item.id,
+							);
+							return match || item;
+						}),
+					);
+				}
+
+				warning(
+					true,
+					'Could not update data',
+					'Ensure entry values are correct.',
+				);
+			}
+		},
+		[api, collection, report],
+	);
+
+	const put = useCallback(
+		async (entry) => {
+			const isMultipleEntries = is.array(entry);
+
+			if (!is.plainObject(entry) && !isMultipleEntries) {
+				warning(true, 'Entry must be a plain object or array');
+				return;
+			}
+
+			setLoading(true);
+
+			let data = isMultipleEntries ? entry : [entry];
+
+			data = data.map((entry) => ({ ...entry, updatedAt: Date.now() }));
+			let previousData;
+
+			setData((prev) => {
+				previousData = prev;
+				return prev.map((item) => {
+					const match = data.find((i) => i.id === item.id);
+					if (match) {
+						return { ...item, ...match, updatedAt: Date.now() };
+					}
+					return item;
+				});
+			});
 
 			if (!isOnline) {
 				report(TYPES.PUT_FAILED, { message: 'Currently offline' });
 
-				setData((prev) =>
-					prev.map((item) => {
-						if (item.id === id) {
-							return { ...item, ...entry };
-						}
-						return item;
-					}),
-				);
-
 				setLocalState((prev) =>
 					prev.map((item) => {
-						if (item.id === id) {
-							return { ...item, ...entry };
+						const match = data.find((i) => i.id === item.id);
+						if (match) {
+							return { ...item, ...match, updatedAt: Date.now() };
 						}
 						return item;
 					}),
@@ -185,36 +253,11 @@ export function useMoxie(props = defaultProps) {
 				return;
 			}
 
-			try {
-				report(TYPES.PUT_STARTED);
-
-				const response = await api.put(
-					`/${collection}/${id}`,
-					JSON.stringify(entry),
-				);
-				report(TYPES.PUT_SUCCESS, response);
-
-				setData((prev) =>
-					prev.map((item) => {
-						if (item.id === id) {
-							return { ...item, ...entry };
-						}
-						return item;
-					}),
-				);
-			} catch (err) {
-				report(TYPES.PUT_FAILED, err);
-
-				warning(
-					true,
-					'Could not update data',
-					'Ensure entry values are correct.',
-				);
-			}
+			await putOperation(data, previousData);
 
 			setLoading(false);
 		},
-		[api, collection, isOnline, report, setLocalState],
+		[isOnline, putOperation, report, setLocalState],
 	);
 
 	const patch = put;
@@ -223,19 +266,42 @@ export function useMoxie(props = defaultProps) {
 		async (entry) => {
 			setLoading(true);
 
-			const removeCollection = !entry || !is.string(entry);
+			const removeCollection = !entry;
+			const isMultipleEntries = is.array(entry);
+
+			let data = isMultipleEntries
+				? entry
+				: is.string(entry)
+				? [{ id: entry }]
+				: [entry];
+
+			let previousData;
+
+			setData((prev) => {
+				previousData = prev;
+				if (removeCollection) {
+					return prev.filter((item) => !item);
+				} else {
+					return prev.filter((item) => {
+						const match = data.find((i) => i.id === item.id);
+						return !match;
+					});
+				}
+			});
 
 			if (!isOnline) {
 				report(TYPES.DELETE_FAILED, { message: 'Currently offline' });
 
 				if (removeCollection) {
-					setData([]);
-					setLocalState([]);
+					setLocalState((prev) => prev.filter((item) => !item));
 				} else {
-					setData((prev) => prev.filter((item) => item.id !== entry));
 					setLocalState((prev) =>
-						prev.filter((item) => item.id !== entry),
+						prev.filter((item) => {
+							const match = data.find((i) => i.id === item.id);
+							return !match;
+						}),
 					);
+					setLocalDeleteState((prev) => [...prev, ...data]);
 				}
 
 				setLoading(false);
@@ -245,35 +311,86 @@ export function useMoxie(props = defaultProps) {
 			try {
 				report(TYPES.DELETE_STARTED);
 
-				let url = removeCollection
-					? `/${collection}`
-					: `/${collection}/${entry}`;
-				const response = await api.delete(url);
+				let url =
+					removeCollection || isMultipleEntries
+						? `/${collection}`
+						: `/${collection}/${entry}`;
+
+				const response = await api.delete(url, data);
 
 				report(TYPES.DELETE_SUCCESS, response);
-
-				if (removeCollection) {
-					setData([]);
-				} else {
-					setData((prev) => prev.filter((item) => item.id !== entry));
-				}
 			} catch (err) {
 				report(TYPES.DELETE_FAILED, err);
+
+				if (previousData) {
+					setData((prev) => previousData);
+				}
 
 				warning(true, 'Could not delete data.');
 			}
 
 			setLoading(false);
 		},
-		[api, collection, isOnline, report, setLocalState],
+		[api, collection, isOnline, report, setLocalDeleteState, setLocalState],
 	);
 
+	const synchronize = useCallback(async () => {
+		if (!isOnline) return;
+
+		if (localState.length) {
+			const entriesToPost = [];
+			const entriesToPut = [];
+
+			for (const entry of localState) {
+				if (!entry.updatedAt) {
+					entriesToPost.push(entry);
+				} else {
+					entriesToPut.push(entry);
+				}
+			}
+
+			if (entriesToPost.length) {
+				await postOperation(entriesToPost);
+			}
+			if (entriesToPut.length) {
+				await putOperation(entriesToPut);
+			}
+			setLocalState([]);
+		}
+
+		if (localDeleteState.length) {
+			await remove(localDeleteState);
+			setLocalDeleteState([]);
+		}
+	}, [
+		isOnline,
+		localDeleteState,
+		localState,
+		postOperation,
+		putOperation,
+		remove,
+		setLocalDeleteState,
+		setLocalState,
+	]);
+
 	useEffect(() => {
-		if (!didInitialFetchRef.current) {
+		const load = async () => {
+			await synchronize();
 			get();
+		};
+
+		if (!didInitialFetchRef.current) {
+			load();
 			didInitialFetchRef.current = true;
 		}
-	}, [get]);
+	}, [get, synchronize]);
+
+	useEffect(() => {
+		if (isOnline !== isOnlineRef.current && !didSaveLocalState.current) {
+			setLocalState(data);
+			didSaveLocalState.current = true;
+		}
+	}, [data, isOnline, setLocalState]);
 
 	const hasData = !!data.length;
 	const didInitialFetch = didInitialFetchRef.current;
