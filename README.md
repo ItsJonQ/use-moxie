@@ -48,7 +48,7 @@ const Example = () => {
 
 ## API
 
-### useMoxie({ username, collection })
+### useMoxie({ username, collection, actionReducer })
 
 #### `username`
 
