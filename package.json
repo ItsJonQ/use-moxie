@@ -1,6 +1,6 @@
 {
   "name": "use-moxie",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "description": "React hooks for Moxie prototyping REST API.",
   "main": "dist/cjs/index.js",
   "module": "dist/es/index.js",
@@ -57,9 +57,9 @@
   },
   "dependencies": {
     "@itsjonq/is": "0.0.5",
-    "uuid": "^8.3.0",
-    "use-enhanced-state": "^0.0.9",
     "axios": "0.20.0",
-    "tiny-warning": "1.0.3"
+    "tiny-warning": "1.0.3",
+    "use-enhanced-state": "^0.0.9",
+    "uuid": "^8.3.0"
   }
 }
