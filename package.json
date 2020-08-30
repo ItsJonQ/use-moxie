@@ -1,0 +1,63 @@
+{
+  "name": "use-moxie",
+  "version": "0.1.0",
+  "description": "React hooks for Moxie prototyping REST API.",
+  "main": "dist/cjs/index.js",
+  "module": "dist/es/index.js",
+  "sideEffects": false,
+  "private": false,
+  "scripts": {
+    "prestart": "zero prestart",
+    "build:es": "BUILD_FORMAT=es zero build -d dist/es",
+    "build:cjs": "BUILD_FORMAT=cjs zero build -d dist/cjs",
+    "build": "npm run build:cjs && npm run build:es -- --no-clean",
+    "lint": "zero lint",
+    "dev": "zero test",
+    "test": "zero test --coverage",
+    "test:coverage": "zero test --coverage",
+    "start": "npm run storybook",
+    "format": "zero format",
+    "validate": "zero validate",
+    "release": "zero release",
+    "version": "npm run build",
+    "precommit": "zero pre-commit",
+    "storybook": "start-storybook -p 6006",
+    "build-storybook": "build-storybook"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "author": "Jon Quach <hello@jonquach.com> (https://jonquach.com)",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/itsjonq/zero.git"
+  },
+  "bugs": {
+    "url": "https://github.com/itsjonq/zero/issues"
+  },
+  "homepage": "https://github.com/itsjonq/zero#readme",
+  "keywords": [],
+  "license": "MIT",
+  "devDependencies": {
+    "@babel/core": "^7.11.4",
+    "@itsjonq/zero": "5.0.2",
+    "@storybook/addon-actions": "^6.0.20",
+    "@storybook/addon-essentials": "^6.0.20",
+    "@storybook/addon-links": "^6.0.20",
+    "@storybook/react": "^6.0.20",
+    "babel-loader": "^8.1.0",
+    "react": "16.13.1",
+    "react-dom": "16.13.1",
+    "react-is": "^16.13.1"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "dependencies": {
+    "@itsjonq/is": "0.0.5",
+    "axios": "0.20.0",
+    "tiny-warning": "1.0.3"
+  }
+}
