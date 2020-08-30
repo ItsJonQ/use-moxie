@@ -138,4 +138,4 @@ Type: `boolean`
 
 ## Example
 
-Check out our [simple example](https://github.com/ItsJonQ/use-moxie/blob/master/src/__stories__/useMoxie.stories.js).
+Check out our [simple example](https://codesandbox.io/s/use-moxie-demo-u3erf?file=/src/App.js).
