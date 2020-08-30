@@ -2,6 +2,20 @@
 
 > React hooks that integrates with [Moxie](https://usemoxie.xyz/) - an online REST API for prototyping.
 
+## Table of Contents
+
+<!-- START doctoc generated TOC please keep comment here to allow auto update -->
+<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+
+-   [Installation](#installation)
+-   [Usage](#usage)
+-   [API](#api)
+    -   [useMoxie({ username, collection })](#usemoxie-username-collection-)
+-   [Props](#props)
+-   [Example](#example)
+
+<!-- END doctoc generated TOC please keep comment here to allow auto update -->
+
 ## Installation
 
 ```
@@ -119,3 +133,7 @@ Type: `boolean`
 Type: `boolean`
 
 `useMoxie` toggles this property whenever an action is performed.
+
+## Example
+
+Check out our [simple example](https://github.com/ItsJonQ/use-moxie/blob/master/src/__stories__/useMoxie.stories.js).
