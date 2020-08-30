@@ -1,7 +1,10 @@
 import { is } from '@itsjonq/is';
 import axios from 'axios';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { v4 as uuid } from 'uuid';
 
+import { useLocalState } from './useLocalState';
+import { useOnline } from './useOnline';
 import { TYPES, warning } from './utils';
 
 const defaultProps = {
@@ -11,9 +14,6 @@ const defaultProps = {
 };
 
 export function useMoxie(props = defaultProps) {
-	const [loading, setLoading] = useState(true);
-	const [data, setData] = useState([]);
-
 	let mergedProps = defaultProps;
 	if (!is.plainObject(props)) {
 		warning(
@@ -25,6 +25,13 @@ export function useMoxie(props = defaultProps) {
 	}
 
 	const { actionReducer, collection, username } = mergedProps;
+
+	const localStorageKey = `useMoxie/${username}/${collection}`;
+
+	const isOnline = useOnline();
+	const [loading, setLoading] = useState(true);
+	const [localState, setLocalState] = useLocalState(localStorageKey, []);
+	const [data, setData] = useState(localState || []);
 
 	const baseURL = useRef(`https://usemoxie.xyz/api/${username}`).current;
 	const api = useRef(
@@ -47,6 +54,13 @@ export function useMoxie(props = defaultProps) {
 	const get = useCallback(
 		async (entry) => {
 			setLoading(true);
+
+			if (!isOnline) {
+				report(TYPES.GET_FAILED, { message: 'Currently offline' });
+				setLoading(false);
+				return;
+			}
+
 			try {
 				report(TYPES.GET_STARTED);
 
@@ -83,7 +97,7 @@ export function useMoxie(props = defaultProps) {
 			}
 			setLoading(false);
 		},
-		[api, collection, report],
+		[api, collection, isOnline, report],
 	);
 
 	const post = useCallback(
@@ -94,6 +108,23 @@ export function useMoxie(props = defaultProps) {
 			}
 
 			setLoading(true);
+
+			if (!isOnline) {
+				report(TYPES.POST_FAILED, { message: 'Currently offline' });
+
+				const postId = entry?.id || uuid();
+				const nextEntry = {
+					createdAt: Date.now(),
+					id: postId,
+					...entry,
+				};
+
+				setData((prev) => [...prev, nextEntry]);
+				setLocalState((prev) => [...prev, nextEntry]);
+
+				setLoading(false);
+				return;
+			}
 
 			try {
 				report(TYPES.POST_STARTED);
@@ -116,7 +147,7 @@ export function useMoxie(props = defaultProps) {
 
 			setLoading(false);
 		},
-		[api, collection, report],
+		[api, collection, isOnline, report, setLocalState],
 	);
 
 	const put = useCallback(
@@ -127,10 +158,34 @@ export function useMoxie(props = defaultProps) {
 			}
 
 			setLoading(true);
+			const { id } = entry;
+
+			if (!isOnline) {
+				report(TYPES.PUT_FAILED, { message: 'Currently offline' });
+
+				setData((prev) =>
+					prev.map((item) => {
+						if (item.id === id) {
+							return { ...item, ...entry };
+						}
+						return item;
+					}),
+				);
+
+				setLocalState((prev) =>
+					prev.map((item) => {
+						if (item.id === id) {
+							return { ...item, ...entry };
+						}
+						return item;
+					}),
+				);
+
+				setLoading(false);
+				return;
+			}
 
 			try {
-				const { id } = entry;
-
 				report(TYPES.PUT_STARTED);
 
 				const response = await api.put(
@@ -159,7 +214,7 @@ export function useMoxie(props = defaultProps) {
 
 			setLoading(false);
 		},
-		[api, collection, report],
+		[api, collection, isOnline, report, setLocalState],
 	);
 
 	const patch = put;
@@ -168,10 +223,27 @@ export function useMoxie(props = defaultProps) {
 		async (entry) => {
 			setLoading(true);
 
+			const removeCollection = !entry || !is.string(entry);
+
+			if (!isOnline) {
+				report(TYPES.DELETE_FAILED, { message: 'Currently offline' });
+
+				if (removeCollection) {
+					setData([]);
+					setLocalState([]);
+				} else {
+					setData((prev) => prev.filter((item) => item.id !== entry));
+					setLocalState((prev) =>
+						prev.filter((item) => item.id !== entry),
+					);
+				}
+
+				setLoading(false);
+				return;
+			}
+
 			try {
 				report(TYPES.DELETE_STARTED);
-
-				const removeCollection = !entry || !is.string(entry);
 
 				let url = removeCollection
 					? `/${collection}`
@@ -193,7 +265,7 @@ export function useMoxie(props = defaultProps) {
 
 			setLoading(false);
 		},
-		[api, collection, report],
+		[api, collection, isOnline, report, setLocalState],
 	);
 
 	useEffect(() => {
