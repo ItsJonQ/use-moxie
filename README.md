@@ -1,4 +1,6 @@
-# use-moxie
+# 🔗 use-moxie
+
+[![npm version](https://badge.fury.io/js/use-moxie.svg)](https://badge.fury.io/js/use-moxie)
 
 > React hooks that integrates with [Moxie](https://usemoxie.xyz/) - an online REST API for prototyping.
 
