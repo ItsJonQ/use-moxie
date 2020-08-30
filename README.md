@@ -12,7 +12,7 @@
 -   [Installation](#installation)
 -   [Usage](#usage)
 -   [API](#api)
-    -   [useMoxie({ username, collection })](#usemoxie-username-collection-)
+    -   [useMoxie({ username, collection, actionReducer })](#usemoxie-username-collection-actionreducer-)
 -   [Props](#props)
 -   [Example](#example)
 
