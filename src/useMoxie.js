@@ -39,6 +39,7 @@ export function useMoxie(props = defaultProps) {
 		localStorageDeleteKey,
 		[],
 	);
+	const [pending, setPending] = useState([]);
 	const [data, setData] = useState(localState || []);
 
 	const baseURL = useRef(`https://usemoxie.xyz/api/${username}`).current;
@@ -160,18 +161,17 @@ export function useMoxie(props = defaultProps) {
 			});
 
 			setData((prev) => [...prev, ...data]);
+			setPending((prev) => [...prev, ...data.map((item) => item.id)]);
 
 			if (!isOnline) {
 				report(TYPES.POST_FAILED, { message: 'Currently offline' });
 
 				setLocalState((prev) => [...prev, ...data]);
-
-				setLoading(false);
-				return;
+			} else {
+				await postOperation(data);
 			}
 
-			await postOperation(data);
-
+			setPending([]);
 			setLoading(false);
 		},
 		[isOnline, postOperation, report, setLocalState],
@@ -235,6 +235,7 @@ export function useMoxie(props = defaultProps) {
 					return item;
 				});
 			});
+			setPending((prev) => [...prev, ...data.map((item) => item.id)]);
 
 			if (!isOnline) {
 				report(TYPES.PUT_FAILED, { message: 'Currently offline' });
@@ -248,19 +249,38 @@ export function useMoxie(props = defaultProps) {
 						return item;
 					}),
 				);
-
-				setLoading(false);
-				return;
+			} else {
+				await putOperation(data, previousData);
 			}
 
-			await putOperation(data, previousData);
-
+			setPending([]);
 			setLoading(false);
 		},
 		[isOnline, putOperation, report, setLocalState],
 	);
 
 	const patch = put;
+
+	const removeOperation = useCallback(
+		async (data, previousData, url) => {
+			try {
+				report(TYPES.DELETE_STARTED);
+
+				const response = await api.delete(url, data);
+
+				report(TYPES.DELETE_SUCCESS, response);
+			} catch (err) {
+				report(TYPES.DELETE_FAILED, err);
+
+				if (previousData) {
+					setData((prev) => previousData);
+				}
+
+				warning(true, 'Could not delete data.');
+			}
+		},
+		[api, report],
+	);
 
 	const remove = useCallback(
 		async (entry) => {
@@ -288,6 +308,9 @@ export function useMoxie(props = defaultProps) {
 					});
 				}
 			});
+			if (!removeCollection) {
+				setPending((prev) => [...prev, ...data.map((item) => item.id)]);
+			}
 
 			if (!isOnline) {
 				report(TYPES.DELETE_FAILED, { message: 'Currently offline' });
@@ -306,32 +329,25 @@ export function useMoxie(props = defaultProps) {
 
 				setLoading(false);
 				return;
-			}
-
-			try {
-				report(TYPES.DELETE_STARTED);
-
-				let url =
+			} else {
+				const url =
 					removeCollection || isMultipleEntries
 						? `/${collection}`
 						: `/${collection}/${entry}`;
-
-				const response = await api.delete(url, data);
-
-				report(TYPES.DELETE_SUCCESS, response);
-			} catch (err) {
-				report(TYPES.DELETE_FAILED, err);
-
-				if (previousData) {
-					setData((prev) => previousData);
-				}
-
-				warning(true, 'Could not delete data.');
+				await removeOperation(data, previousData, url);
 			}
 
+			setPending([]);
 			setLoading(false);
 		},
-		[api, collection, isOnline, report, setLocalDeleteState, setLocalState],
+		[
+			collection,
+			isOnline,
+			removeOperation,
+			report,
+			setLocalDeleteState,
+			setLocalState,
+		],
 	);
 
 	const synchronize = useCallback(async () => {
@@ -402,11 +418,18 @@ export function useMoxie(props = defaultProps) {
 		remove,
 	};
 
+	const isPending = (entry) => {
+		const match = is.plainObject(entry) ? entry?.id : entry;
+		return pending.includes(match);
+	};
+
 	return {
 		actions,
 		data,
 		didInitialFetch,
 		hasData,
+		isPending,
 		loading,
+		pending,
 	};
 }

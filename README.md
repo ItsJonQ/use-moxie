@@ -15,6 +15,7 @@
     -   [useMoxie({ username, collection, actionReducer })](#usemoxie-username-collection-actionreducer-)
 -   [Props](#props)
 -   [Example](#example)
+-   [Offline Support](#offline-support)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
@@ -33,7 +34,7 @@ import React from 'react';
 import { useMoxie } from 'use-moxie';
 
 const Example = () => {
-	const { actions, data, didInitialFetch, loading } = useMoxie({
+	const { data, didInitialFetch, loading } = useMoxie({
 		username: '@itsjonq',
 		collection: 'use-moxie-demo',
 	});
@@ -42,7 +43,13 @@ const Example = () => {
 		return <div>...</div>;
 	}
 
-	return <div>Ready!</div>;
+	return (
+		<div>
+			{data.map((entry) => (
+				<div key={entry.id}>{entry.message}</div>
+			))}
+		</div>
+	);
 };
 ```
 
@@ -98,7 +105,15 @@ const { actions, data, didInitialFetch, loading } = useMoxie({
 The `useMoxie` hook provides a handful of useful props:
 
 ```jsx
-const { actions, data, didInitialFetch, loading } = useMoxie({
+const {
+	actions,
+	data,
+	didInitialFetch,
+	hasData,
+	isPending,
+	pending,
+	loading,
+} = useMoxie({
 	username: '@itsjonq',
 	collection: 'use-moxie-demo',
 });
@@ -120,7 +135,7 @@ Actions contains a collection of RESTful actions you can perform on your Moxie c
 
 #### `data`
 
-Type: `array`
+Type: `Array`
 
 The collection of your entries.
 
@@ -130,11 +145,39 @@ Type: `boolean`
 
 `useMoxie` does an initial `GET` request for your collection on load. This property indicates whether that initial request has been performed. This is useful for rendering an initial loading UI.
 
+#### `hasData`
+
+Type: `boolean`
+
+Whether your collection has entries.
+
+#### `isPending`
+
+Type: `function(object|string)`
+
+Checks whether an entry is being processed. An entry is considered "pending" after an action is called, but before it is fully resolved from Moxie.
+
+##### Example:
+
+```js
+<div key={entry.id}>
+	{entry.title}
+	<br />
+	{isPending(entry) ? 'Ready' : '...'}
+</div>
+```
+
 #### `loading`
 
 Type: `boolean`
 
 `useMoxie` toggles this property whenever an action is performed.
+
+#### `pending`
+
+Type: `Array<string>`
+
+An array of entries (ids) that are currently being processed. An entry is considered "pending" after an action is called, but before it is fully resolved from Moxie.
 
 ## Example
 
@@ -142,4 +185,4 @@ Check out our [simple example](https://codesandbox.io/s/use-moxie-demo-u3erf?fil
 
 ## Offline Support
 
-`useMoxie` has some basic offline support.
+`useMoxie` has some basic offline support. It will save actions to `localStorage` while you are offline. Once you're back online, it will try to synchronize the offline modifications.
