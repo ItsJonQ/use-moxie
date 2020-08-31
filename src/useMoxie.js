@@ -65,7 +65,7 @@ export function useMoxie(props = defaultProps) {
 			setLoading(true);
 
 			if (!isOnline) {
-				report(TYPES.GET_FAILED, { message: 'Currently offline' });
+				report(TYPES.GET_OFFLINE, { message: 'Currently offline' });
 				setLoading(false);
 				return;
 			}
@@ -164,7 +164,7 @@ export function useMoxie(props = defaultProps) {
 			setPending((prev) => [...prev, ...data.map((item) => item.id)]);
 
 			if (!isOnline) {
-				report(TYPES.POST_FAILED, { message: 'Currently offline' });
+				report(TYPES.POST_OFFLINE, { message: 'Currently offline' });
 
 				setLocalState((prev) => [...prev, ...data]);
 			} else {
@@ -238,7 +238,7 @@ export function useMoxie(props = defaultProps) {
 			setPending((prev) => [...prev, ...data.map((item) => item.id)]);
 
 			if (!isOnline) {
-				report(TYPES.PUT_FAILED, { message: 'Currently offline' });
+				report(TYPES.PUT_OFFLINE, { message: 'Currently offline' });
 
 				setLocalState((prev) =>
 					prev.map((item) => {
@@ -313,7 +313,7 @@ export function useMoxie(props = defaultProps) {
 			}
 
 			if (!isOnline) {
-				report(TYPES.DELETE_FAILED, { message: 'Currently offline' });
+				report(TYPES.DELETE_OFFLINE, { message: 'Currently offline' });
 
 				if (removeCollection) {
 					setLocalState((prev) => prev.filter((item) => !item));
@@ -400,6 +400,14 @@ export function useMoxie(props = defaultProps) {
 			didInitialFetchRef.current = true;
 		}
 	}, [get, synchronize]);
+
+	useEffect(() => {
+		if (isOnline) {
+			report(TYPES.DETECT_ONLINE);
+		} else {
+			report(TYPES.DETECT_OFFLINE);
+		}
+	}, [isOnline, report]);
 
 	useEffect(() => {
 		if (isOnline !== isOnlineRef.current && !didSaveLocalState.current) {

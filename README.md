@@ -85,20 +85,26 @@ const { actions, data, didInitialFetch, loading } = useMoxie({
 });
 ```
 
-| Action Type      | Description                   |
-| ---------------- | ----------------------------- |
-| `GET_FAILED`     | `get` request has failed.     |
-| `GET_STARTED`    | `get` request has started.    |
-| `GET_SUCCESS`    | `get` request has succeed.    |
-| `POST_FAILED`    | `post` request has failed.    |
-| `POST_STARTED`   | `post` request has started.   |
-| `POST_SUCCESS`   | `post` request has succeed.   |
-| `PUT_FAILED`     | `put` request has failed.     |
-| `PUT_STARTED`    | `put` request has started.    |
-| `PUT_SUCCESS`    | `put` request has succeed.    |
-| `DELETE_FAILED`  | `delete` request has failed.  |
-| `DELETE_STARTED` | `delete` request has started. |
-| `DELETE_SUCCESS` | `delete` request has succeed. |
+| Action Type      | Description                                        |
+| ---------------- | -------------------------------------------------- |
+| `GET_FAILED`     | `get` request has failed.                          |
+| `GET_STARTED`    | `get` request has started.                         |
+| `GET_SUCCESS`    | `get` request has succeed.                         |
+| `GET_OFFLINE`    | `get` request bypassed. Currently offline.         |
+| `POST_FAILED`    | `post` request has failed.                         |
+| `POST_STARTED`   | `post` request has started.                        |
+| `POST_SUCCESS`   | `post` request has succeed.                        |
+| `POST_OFFLINE`   | `post` request saved locally. Currently offline.   |
+| `PUT_FAILED`     | `put` request has failed.                          |
+| `PUT_STARTED`    | `put` request has started.                         |
+| `PUT_SUCCESS`    | `put` request has succeed.                         |
+| `PUT_OFFLINE`    | `put` request saved locally. Currently offline.    |
+| `DELETE_FAILED`  | `delete` request has failed.                       |
+| `DELETE_STARTED` | `delete` request has started.                      |
+| `DELETE_SUCCESS` | `delete` request has succeed.                      |
+| `DELETE_OFFLINE` | `delete` request saved locally. Currently offline. |
+| `DETECT_ONLINE`  | Detected internet connection is available.         |
+| `DETECT_OFFLINE` | Detected internet connection is lost.              |
 
 ## Props
 
