@@ -195,6 +195,8 @@ Type: `Array<string>`
 
 An array of entries (ids) that are currently being processed. An entry is considered "pending" after an action is called, but before it is fully resolved from Moxie.
 
+---
+
 ### useMoxieState({ username, collection, initialState, actionReducer })
 
 Used to manage state (`object`).
@@ -223,14 +225,15 @@ Data to set as initial state. This state will be synced with Moxie on initial lo
 
 Type: `function`
 
-A callback function that dispatches events when `useMoxie` performs API actions.
+A callback function that dispatches events when `useMoxieState` performs API actions.
 
 Example:
 
 ```jsx
-const { actions, data, didInitialFetch, loading } = useMoxie({
+const { state, setState, didInitialFetch, loading } = useMoxieState({
 	username: '@itsjonq',
 	collection: 'use-moxie-demo-state',
+	initialState: { active: false },
 	actionReducer: (type) => console.log(type),
 });
 ```
