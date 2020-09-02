@@ -1,5 +1,17 @@
 import tinyWarning from 'tiny-warning';
 
+export const useMoxieDefaultProps = {
+	actionReducer: (...args) => args,
+	collection: 'temp',
+	initialState: [],
+	username: '@use-moxie-hook-default',
+};
+
+export const useMoxieStateDefaultProps = {
+	...useMoxieDefaultProps,
+	collection: 'temp-state',
+};
+
 export const TYPES = {
 	DELETE_FAILED: 'DELETE_FAILED',
 	DELETE_OFFLINE: 'DELETE_OFFLINE',

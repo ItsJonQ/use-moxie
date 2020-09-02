@@ -12,8 +12,8 @@
 -   [Installation](#installation)
 -   [Usage](#usage)
 -   [API](#api)
-    -   [useMoxie({ username, collection, actionReducer })](#usemoxie-username-collection-actionreducer-)
--   [Props](#props)
+    -   [useMoxie({ username, collection, initialState, actionReducer })](#usemoxie-username-collection-initialstate-actionreducer-)
+    -   [useMoxieState({ username, collection, initialState, actionReducer })](#usemoxiestate-username-collection-initialstate-actionreducer-)
 -   [Example](#example)
 -   [Offline Support](#offline-support)
 
@@ -55,21 +55,31 @@ const Example = () => {
 
 ## API
 
-### useMoxie({ username, collection, actionReducer })
+### useMoxie({ username, collection, initialState, actionReducer })
 
-#### `username`
+Used to manage a collection (`Array`) of entries (`object`).
+
+Note: Updates (from `actions`) from the `useMoxie` hook makes a network request to Moxie server. Avoid making rapid updates (e.g. update per keystroke).
+
+##### `username`
 
 Type: `string`
 
 Your username for Moxie. It must start with an `@`. Example: `@itsjonq`.
 
-#### `collection`
+##### `collection`
 
 Type: `string`
 
 The name of the collection for your data. If it doesn't exist under your Moxie username, Moxie will create it for you automatically when you add your first entry.
 
-#### `actionReducer`
+##### `initialState`
+
+Type: `Array<object>`
+
+A collection of data to set as initial state. This state will be synced with Moxie on initial load.
+
+##### `actionReducer`
 
 Type: `function`
 
@@ -106,7 +116,7 @@ const { actions, data, didInitialFetch, loading } = useMoxie({
 | `DETECT_ONLINE`  | Detected internet connection is available.         |
 | `DETECT_OFFLINE` | Detected internet connection is lost.              |
 
-## Props
+#### Props
 
 The `useMoxie` hook provides a handful of useful props:
 
@@ -125,7 +135,7 @@ const {
 });
 ```
 
-#### `actions`
+##### `actions`
 
 Type: `object`
 
@@ -139,31 +149,31 @@ Actions contains a collection of RESTful actions you can perform on your Moxie c
 | `actions.patch(data)` | Updates an entry. The `data` argument needs to be an `object` with an `id`.                |
 | `actions.remove(id?)` | Removes your collection. Can remove an individual entry if an `id` (`string`) is provided. |
 
-#### `data`
+##### `data`
 
 Type: `Array`
 
 The collection of your entries.
 
-#### `didInitialFetch`
+##### `didInitialFetch`
 
 Type: `boolean`
 
 `useMoxie` does an initial `GET` request for your collection on load. This property indicates whether that initial request has been performed. This is useful for rendering an initial loading UI.
 
-#### `hasData`
+##### `hasData`
 
 Type: `boolean`
 
 Whether your collection has entries.
 
-#### `isPending`
+##### `isPending`
 
 Type: `function(object|string)`
 
 Checks whether an entry is being processed. An entry is considered "pending" after an action is called, but before it is fully resolved from Moxie.
 
-##### Example:
+###### Example:
 
 ```js
 <div key={entry.id}>
@@ -173,17 +183,146 @@ Checks whether an entry is being processed. An entry is considered "pending" aft
 </div>
 ```
 
-#### `loading`
+##### `loading`
 
 Type: `boolean`
 
 `useMoxie` toggles this property whenever an action is performed.
 
-#### `pending`
+##### `pending`
 
 Type: `Array<string>`
 
 An array of entries (ids) that are currently being processed. An entry is considered "pending" after an action is called, but before it is fully resolved from Moxie.
+
+### useMoxieState({ username, collection, initialState, actionReducer })
+
+Used to manage state (`object`).
+
+Note: Updates (from `setState`) from the `useMoxieState` hook makes a network request to Moxie server. Avoid making rapid updates (e.g. update per keystroke).
+
+##### `username`
+
+Type: `string`
+
+Your username for Moxie. It must start with an `@`. Example: `@itsjonq`.
+
+##### `collection`
+
+Type: `string`
+
+The name of the collection for your state data. If it doesn't exist under your Moxie username, Moxie will create it for you automatically when you add your first entry. Note: This collection should be different from your an existing Moxie / `useMoxie()` collection.
+
+##### `initialState`
+
+Type: `Object`
+
+Data to set as initial state. This state will be synced with Moxie on initial load.
+
+##### `actionReducer`
+
+Type: `function`
+
+A callback function that dispatches events when `useMoxie` performs API actions.
+
+Example:
+
+```jsx
+const { actions, data, didInitialFetch, loading } = useMoxie({
+	username: '@itsjonq',
+	collection: 'use-moxie-demo-state',
+	actionReducer: (type) => console.log(type),
+});
+```
+
+#### Props
+
+The `useMoxieState` hook provides a handful of useful props:
+
+```jsx
+const {
+	state,
+	setState,
+	removeState,
+	didInitialFetch,
+	hasData,
+	isPending,
+	pending,
+	loading,
+} = useMoxie({
+	username: '@itsjonq',
+	collection: 'use-moxie-demo-state',
+});
+```
+
+Many of these props are the same from the `useMoxie` hook.
+
+##### `state`
+
+Type: `object`
+
+The state.
+
+```jsx
+const { state, setState } = useMoxie({
+	username: '@itsjonq',
+	collection: 'use-moxie-demo-state',
+	initialState: {
+		active: false,
+	},
+});
+
+console.log(state);
+// { active: false }
+```
+
+##### `setState`
+
+Type: `function`
+
+Method used to update state. `setState` updates the state both locally and on Moxie.
+
+```jsx
+const { state, setState } = useMoxie({
+	username: '@itsjonq',
+	collection: 'use-moxie-demo-state',
+	initialState: {
+		active: false,
+	},
+});
+
+console.log(state);
+// { active: false }
+
+setState({ active: true });
+
+console.log(state);
+// { active: true }
+```
+
+##### `removeState`
+
+Type: `function`
+
+Method used to remove state. Use this if you need to reset this.
+
+```jsx
+const { state, removeState } = useMoxie({
+	username: '@itsjonq',
+	collection: 'use-moxie-demo-state',
+	initialState: {
+		active: false,
+	},
+});
+
+console.log(state);
+// { active: false }
+
+removeState();
+
+console.log(state);
+// {}
+```
 
 ## Example
 

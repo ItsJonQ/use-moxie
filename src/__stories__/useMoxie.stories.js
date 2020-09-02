@@ -14,13 +14,14 @@ const Example = () => {
 		isPending,
 		loading,
 		pending,
-	} = useMoxie({});
+	} = useMoxie({
+		initialState: [{ id: 'yup', message: 'yup' }],
+	});
 
 	if (!didInitialFetch && loading) {
 		return <div>...</div>;
 	}
 
-	console.log(pending);
 	return (
 		<div>
 			<button onClick={() => actions.post({ message: 'hello' })}>

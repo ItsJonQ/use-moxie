@@ -5,13 +5,9 @@ import { v4 as uuid } from 'uuid';
 
 import { useLocalState } from './useLocalState';
 import { useOnline } from './useOnline';
-import { TYPES, warning } from './utils';
+import { TYPES, useMoxieDefaultProps, warning } from './utils';
 
-const defaultProps = {
-	actionReducer: (...args) => args,
-	collection: 'temp',
-	username: '@use-moxie-hook-default',
-};
+const defaultProps = useMoxieDefaultProps;
 
 export function useMoxie(props = defaultProps) {
 	let mergedProps = defaultProps;
@@ -24,7 +20,7 @@ export function useMoxie(props = defaultProps) {
 		mergedProps = { ...defaultProps, ...props };
 	}
 
-	const { actionReducer, collection, username } = mergedProps;
+	const { actionReducer, collection, initialState, username } = mergedProps;
 
 	const localStorageKey = `useMoxie/${username}/${collection}`;
 	const localStorageDeleteKey = `useMoxie/${username}/${collection}/DELETE`;
@@ -32,9 +28,13 @@ export function useMoxie(props = defaultProps) {
 	const isOnline = useOnline();
 	const isOnlineRef = useRef(isOnline);
 	const didSaveLocalState = useRef(false);
+	const didSyncInitialState = useRef(false);
 
 	const [loading, setLoading] = useState(true);
-	const [localState, setLocalState] = useLocalState(localStorageKey, []);
+	const [localState, setLocalState] = useLocalState(
+		localStorageKey,
+		initialState,
+	);
 	const [localDeleteState, setLocalDeleteState] = useLocalState(
 		localStorageDeleteKey,
 		[],
@@ -83,7 +83,7 @@ export function useMoxie(props = defaultProps) {
 				report(TYPES.GET_SUCCESS, response);
 
 				if (getCollection) {
-					setData(response.data);
+					setData((prev) => [...prev, ...response.data]);
 				} else {
 					setData((prev) =>
 						prev.map((entry) => {
@@ -273,7 +273,7 @@ export function useMoxie(props = defaultProps) {
 				report(TYPES.DELETE_FAILED, err);
 
 				if (previousData) {
-					setData((prev) => previousData);
+					setData(() => previousData);
 				}
 
 				warning(true, 'Could not delete data.');
@@ -350,7 +350,7 @@ export function useMoxie(props = defaultProps) {
 		],
 	);
 
-	const synchronize = useCallback(async () => {
+	const synchronizeLocalState = useCallback(async () => {
 		if (!isOnline) return;
 
 		if (localState.length) {
@@ -389,10 +389,31 @@ export function useMoxie(props = defaultProps) {
 		setLocalState,
 	]);
 
+	const synchronizeInitialState = useCallback(async () => {
+		if (!isOnline) return;
+
+		if (!didSyncInitialState.current) {
+			if (is.array(initialState)) {
+				await postOperation(initialState);
+			}
+
+			didSyncInitialState.current = true;
+		}
+	}, [initialState, isOnline, postOperation]);
+
+	const synchronize = useCallback(async () => {
+		synchronizeInitialState();
+		await synchronizeLocalState();
+	}, [synchronizeInitialState, synchronizeLocalState]);
+
 	useEffect(() => {
 		const load = async () => {
-			await synchronize();
-			get();
+			try {
+				await synchronize();
+				get();
+			} catch (err) {
+				console.warn('Could not synchronize data.', err);
+			}
 		};
 
 		if (!didInitialFetchRef.current) {
