@@ -1,6 +1,6 @@
 {
   "name": "use-moxie",
-  "version": "0.0.7",
+  "version": "0.0.8",
   "description": "React hooks for Moxie prototyping REST API.",
   "main": "dist/cjs/index.js",
   "module": "dist/es/index.js",
